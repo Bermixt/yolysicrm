@@ -6,15 +6,15 @@
     - [x] Define fields: `domain`, `url`, `status` (Active/Inactive), `platform` (Shopify/Other), `lastVerifiedAt`, `enrichmentData` (JSON).
 
 ## Phase 2: Verification Logic (Backend)
-- [ ] **Task: Implement Verification Action**
-    - [ ] Create a new Convex action (e.g., `convex/actions/verifyStore.ts`).
-    - [ ] Implement HTTP fetching logic using `fetch`.
-    - [ ] Implement HTML parsing/regex to detect Shopify signatures (`window.Shopify`, CDN links).
-    - [ ] Return structured result.
-- [ ] **Task: Create Internal Mutation**
-    - [ ] Create a mutation `updateStoreVerification` to save results to the database.
-- [ ] **Task: Expose Public API (Optional/Internal)**
-    - [ ] ensure the action is callable from the client or other internal workflows.
+- [x] **Task: Implement Verification Action** (fd76830)
+    - [x] Create a new Convex action (e.g., `convex/actions/verifyStore.ts`).
+    - [x] Implement HTTP fetching logic using `fetch`.
+    - [x] Implement HTML parsing/regex to detect Shopify signatures (`window.Shopify`, CDN links).
+    - [x] Return structured result.
+- [x] **Task: Create Internal Mutation** (6395c70)
+    - [x] Create a mutation `updateStoreVerification` to save results to the database.
+- [x] **Task: Expose Public API (Optional/Internal)** (6395c70)
+    - [x] ensure the action is callable from the client or other internal workflows.
 
 ## Phase 3: Testing & Validation
 - [ ] **Task: Unit Testing**
