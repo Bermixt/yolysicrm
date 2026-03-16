@@ -5,7 +5,7 @@
     - [x] Create/Update `convex/schema.ts` to include a `stores` table.
     - [x] Define fields: `domain`, `url`, `status` (Active/Inactive), `platform` (Shopify/Other), `lastVerifiedAt`, `enrichmentData` (JSON).
 
-## Phase 2: Verification Logic (Backend)
+## Phase 2: Verification Logic (Backend) [checkpoint: d5ddf1e]
 - [x] **Task: Implement Verification Action** (fd76830)
     - [x] Create a new Convex action (e.g., `convex/actions/verifyStore.ts`).
     - [x] Implement HTTP fetching logic using `fetch`.
