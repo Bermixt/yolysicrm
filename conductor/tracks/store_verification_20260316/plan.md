@@ -1,9 +1,9 @@
 # Implementation Plan - Store Verification & Data Enrichment
 
 ## Phase 1: Database Schema Design
-- [ ] **Task: Define Store Schema**
-    - [ ] Create/Update `convex/schema.ts` to include a `stores` table.
-    - [ ] Define fields: `domain`, `url`, `status` (Active/Inactive), `platform` (Shopify/Other), `lastVerifiedAt`, `enrichmentData` (JSON).
+- [x] **Task: Define Store Schema** (71f76ad)
+    - [x] Create/Update `convex/schema.ts` to include a `stores` table.
+    - [x] Define fields: `domain`, `url`, `status` (Active/Inactive), `platform` (Shopify/Other), `lastVerifiedAt`, `enrichmentData` (JSON).
 
 ## Phase 2: Verification Logic (Backend)
 - [ ] **Task: Implement Verification Action**
