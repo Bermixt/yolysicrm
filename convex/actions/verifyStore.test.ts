@@ -3,8 +3,8 @@ import { verifyStoreInternal } from "./verifyStore";
 
 describe("verifyStore Action Logic", () => {
   it("should detect Shopify store from HTML", async () => {
-    const mockHtml = '<html><head><script>window.Shopify = {};</script><script src="https://cdn.shopify.com/something.js"></script></head><body></body></html>';
-    
+    const mockHtml = '<html><head><title>My Shop</title><script>window.Shopify = {};</script><script src="https://cdn.shopify.com/something.js"></script></head><body></body></html>';
+
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true,
       text: () => Promise.resolve(mockHtml),
@@ -13,13 +13,14 @@ describe("verifyStore Action Logic", () => {
     const result = await verifyStoreInternal("https://myshop.com");
     expect(result.status).toBe("Active");
     expect(result.platform).toBe("Shopify");
-    
+    expect(result.metadata?.title).toBe("My Shop");
+
     vi.unstubAllGlobals();
   });
 
   it("should detect non-Shopify store", async () => {
-    const mockHtml = '<html><head></head><body>Hello World</body></html>';
-    
+    const mockHtml = '<html><head><title>Hello</title><meta name="description" content="A plain site"></head><body>Hello World</body></html>';
+
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
       ok: true,
       text: () => Promise.resolve(mockHtml),
@@ -28,7 +29,9 @@ describe("verifyStore Action Logic", () => {
     const result = await verifyStoreInternal("https://google.com");
     expect(result.status).toBe("Active");
     expect(result.platform).toBe("Other");
-    
+    expect(result.metadata?.title).toBe("Hello");
+    expect(result.metadata?.description).toBe("A plain site");
+
     vi.unstubAllGlobals();
   });
 

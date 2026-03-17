@@ -1,46 +1,107 @@
-# Welcome to your Convex + Next.js + Convex Auth app
+# Yolysi CRM
 
-This is a [Convex](https://convex.dev/) project created with [`npm create convex`](https://www.npmjs.com/package/create-convex).
+A B2B CRM platform for lead generation targeting Shopify-powered e-commerce stores. It automates the lifecycle from raw store data to qualified leads through a mix of deterministic and AI-powered enrichment workflows.
 
-After the initial setup (<2 minutes) you'll have a working full-stack app using:
+## Stack
 
-- Convex as your backend (database, server logic)
-- [React](https://react.dev/) as your frontend (web page interactivity)
-- [Next.js](https://nextjs.org/) for optimized web hosting and page routing
-- [Tailwind](https://tailwindcss.com/) for building great looking accessible UI
-- [Convex Auth](https://labs.convex.dev/auth) for authentication
+- **Frontend:** Next.js (App Router) + React + Tailwind CSS
+- **Backend:** Convex (serverless functions, real-time database)
+- **Auth:** Convex Auth (password provider)
+- **Language:** TypeScript
+- **Tests:** Vitest
 
-## Get started
+## Getting started
 
-If you just cloned this codebase and didn't use `npm create convex`, run:
-
-```
+```bash
 npm install
 npm run dev
 ```
 
-If you're reading this README on GitHub and want to use this template, run:
+This starts both the Next.js frontend and the Convex backend in parallel.
+
+## What's been built
+
+### Store Verification & Data Enrichment (Track 1)
+
+The first feature track implements the core enrichment engine: given a URL, determine whether it's an active Shopify-powered store and capture basic metadata.
+
+#### Database schema (`convex/schema.ts`)
+
+A `stores` table with:
+
+| Field | Type | Description |
+|---|---|---|
+| `domain` | `string` | Store domain (e.g. `allbirds.com`) |
+| `url` | `string` | Full URL |
+| `status` | `"Active" \| "Inactive" \| "Unreachable"` | Verification result |
+| `platform` | `"Shopify" \| "Other" \| "Unknown"` | Detected platform |
+| `lastVerifiedAt` | `number?` | Unix timestamp of last check |
+| `enrichmentData` | `any?` | Arbitrary metadata JSON |
+
+Indexes: `by_domain`, `by_status`, `by_platform`.
+
+#### Store verification action (`convex/actions/verifyStore.ts`)
+
+`verifyStore({ url })` — Convex action that:
+
+1. Fetches the URL with browser-like headers (Chrome User-Agent, `Accept`, `Accept-Language`) to avoid bot-blocking by CDNs and Shopify's infrastructure
+2. Retries once on transient network errors (DNS busy, timeouts)
+3. Detects Shopify by scanning the HTML for: `window.Shopify`, `Shopify.shop`, `cdn.shopify.com`, `shopify-checkout-api-token`, `shopify-payment-button`
+4. Extracts page metadata: `<title>` and `<meta name="description">`
+
+Returns:
+```ts
+{
+  status: "Active" | "Inactive" | "Unreachable",
+  platform: "Shopify" | "Other" | "Unknown",
+  metadata?: { title?: string; description?: string }
+}
+```
+
+#### Store persistence (`convex/stores.ts`)
+
+- `updateStoreVerification(args)` — upserts a store record (insert or patch by domain), sets `lastVerifiedAt`
+- `getStoreByDomain({ domain })` — retrieves a store record by domain
+
+#### Authentication (`convex/auth.ts`)
+
+Email/password authentication via Convex Auth. HTTP routes configured in `convex/http.ts`.
+
+## Tests
+
+```bash
+npm test
+```
+
+19 tests across 3 test files:
+
+- `convex/actions/verifyStore.test.ts` — unit tests for verification logic (Shopify detection, non-Shopify, unreachable, inactive, metadata extraction)
+- `convex/stores.test.ts` — unit tests for `upsertStoreVerification` and `fetchStoreByDomain` (insert, patch, Unreachable/Unknown passthrough, timestamps, enrichmentData)
+- `convex/schema.test.ts` — schema structure validation
+
+## Project structure
 
 ```
-npm create convex@latest -- -t nextjs-convexauth
+convex/
+  actions/
+    verifyStore.ts       # Store verification action + Shopify detection
+    verifyStore.test.ts
+  schema.ts              # Database schema
+  stores.ts              # Store mutations and queries
+  stores.test.ts
+  auth.ts                # Auth configuration
+  http.ts                # HTTP routes
+app/
+  page.tsx               # Main page
+  signin/page.tsx        # Sign-in UI
+conductor/               # Project specs, plans, and track progress
 ```
 
-## Learn more
+## Roadmap
 
-To learn more about developing your project with Convex, check out:
-
-- The [Tour of Convex](https://docs.convex.dev/get-started) for a thorough introduction to Convex principles.
-- The rest of [Convex docs](https://docs.convex.dev/) to learn about all Convex features.
-- [Stack](https://stack.convex.dev/) for in-depth articles on advanced topics.
-- [Convex Auth docs](https://labs.convex.dev/auth) for documentation on the Convex Auth library.
-
-## Configuring other authentication methods
-
-To configure different authentication methods, see [Configuration](https://labs.convex.dev/auth/config) in the Convex Auth docs.
-
-## Join the community
-
-Join thousands of developers building full-stack apps with Convex:
-
-- Join the [Convex Discord community](https://convex.dev/community) to get help in real-time.
-- Follow [Convex on GitHub](https://github.com/get-convex/), star and contribute to the open-source implementation of Convex.
+- [ ] Entity resolution (identify the operating company behind a store)
+- [ ] Decision maker discovery
+- [ ] Lead scoring & ICP clustering
+- [ ] CSV import & Store Leads API integration
+- [ ] Frontend dashboard (leads table, pipeline view)
+- [ ] Multi-user / RBAC

@@ -10,4 +10,15 @@ export default defineSchema({
   numbers: defineTable({
     value: v.number(),
   }),
+  stores: defineTable({
+    domain: v.string(),
+    url: v.string(),
+    status: v.union(v.literal("Active"), v.literal("Inactive"), v.literal("Unreachable")),
+    platform: v.union(v.literal("Shopify"), v.literal("Other"), v.literal("Unknown")),
+    lastVerifiedAt: v.optional(v.number()),
+    enrichmentData: v.optional(v.any()),
+  })
+    .index("by_domain", ["domain"])
+    .index("by_status", ["status"])
+    .index("by_platform", ["platform"]),
 });
