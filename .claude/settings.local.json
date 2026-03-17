@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__convex__status",
+      "Bash(npm test:*)"
+    ]
+  },
+  "enabledMcpjsonServers": [
+    "convex"
+  ]
+}
