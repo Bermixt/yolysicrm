@@ -14,3 +14,6 @@
 
 ## Authentication
 - **Provider:** Convex Auth
+
+## Utilities
+- **CSV Parsing:** papaparse (client-side, auto-detects comma/semicolon/tab delimiters)

@@ -78,3 +78,39 @@ export const getStoreByDomain = query({
   args: { domain: v.string() },
   handler: async (ctx, args) => fetchStoreByDomain(ctx as unknown as DbCtx, args.domain),
 });
+
+/**
+ * Import a batch of domains into the stores table.
+ * Upserts each domain with status "Inactive" and platform "Unknown".
+ * Returns counts of imported and skipped entries.
+ */
+export const importStores = mutation({
+  args: { domains: v.array(v.string()) },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthenticated");
+    }
+
+    let imported = 0;
+    let skipped = 0;
+
+    for (const raw of args.domains) {
+      const domain = raw.trim();
+      if (!domain) {
+        skipped++;
+        continue;
+      }
+      const url = domain.startsWith("http") ? domain : `https://${domain}`;
+      await upsertStoreVerification(ctx as unknown as DbCtx, {
+        domain,
+        url,
+        status: "Inactive",
+        platform: "Unknown",
+      });
+      imported++;
+    }
+
+    return { imported, skipped };
+  },
+});
