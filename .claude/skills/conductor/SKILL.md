@@ -1,3 +1,8 @@
+---
+name: conductor
+description: Spec-driven development workflow. Use to start the next task, check track status, open or close a track, or run a phase checkpoint.
+---
+
 # Conductor — Spec-Driven Development Process
 
 ## What conductor/ is

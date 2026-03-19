@@ -1,3 +1,9 @@
+---
+name: convex
+description: Convex backend development guidelines. Apply when writing or reviewing Convex functions, schema, queries, mutations, actions, authentication, scheduling, or file storage.
+user-invocable: false
+---
+
 # Convex Development Guidelines
 
 You are helping build a Convex backend. Follow these rules strictly when writing or reviewing Convex code.

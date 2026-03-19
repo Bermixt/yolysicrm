@@ -1,10 +1,3 @@
-# CSV Import — Architecture Diagram
-
-Flow: **Upload → Map Column → Import → Verify**
-
-Each node is labelled with *what* happens and *why* it happens there.
-
-```mermaid
 flowchart TD
 
     %% ── STEP 1: UPLOAD ──────────────────────────────────────────────────────
@@ -97,4 +90,3 @@ flowchart TD
         L2["Reads per mutation/query execution\n→ max 4 096\n\nImpact: batch size capped at 2 000\n(1 indexed read per domain)"]
         L3["External HTTP calls\n→ only in Actions\n\nImpact: store verification must be\nan Action, not a Mutation/Query"]
     end
-```
