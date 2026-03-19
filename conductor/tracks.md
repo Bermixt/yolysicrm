@@ -9,3 +9,9 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 - [x] **Track: CSV Import with Auto Header Discovery & Batch Store Verification**
   *Link: [./tracks/csv_import_20260317/](./tracks/csv_import_20260317/)*
+
+- [x] **Track: UI Navigation, Stores Explorer & robots.txt Bulk Action**
+  *Link: [./tracks/ui_navigation_stores_20260319/](./tracks/ui_navigation_stores_20260319/)*
+
+- [x] **Track: CSV Import Enhancements — 300K limit, batching & duplicate handling**
+  *Link: [./tracks/csv_import_enhancements_20260319/](./tracks/csv_import_enhancements_20260319/)*

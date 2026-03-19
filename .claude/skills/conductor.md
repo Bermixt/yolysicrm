@@ -17,14 +17,92 @@ conductor/
   tech-stack.md           # Deliberate, documented technology choices
   workflow.md             # The full task + phase lifecycle (source of truth for HOW to work)
   tracks.md               # Registry of all tracks with done/todo status
+  learnings.md            # Cross-track bug log and hard-won knowledge — see format below
   code_styleguides/       # Language-specific style guides (TypeScript, HTML/CSS…)
   tracks/
     <track_id>/
       index.md            # Pointers to spec, plan, metadata
       spec.md             # What to build and why (acceptance criteria, requirements)
       plan.md             # Phased breakdown with task checkboxes + commit SHAs
-      metadata.json       # { track_id, type, status, created_at, updated_at, description }
+      metadata.json       # Canonical track metadata — see format below
 ```
+
+---
+
+## learnings.md — purpose, format and rules
+
+`conductor/learnings.md` is a **persistent bug and constraint log** shared across all tracks. It captures issues discovered during implementation so that future tracks can avoid the same mistakes at the spec and plan stage.
+
+### When to write a learning entry
+
+Write an entry whenever:
+- A runtime error reveals a platform constraint that was not known before (e.g. Convex limits).
+- A bug is caused by a pattern used consistently across the codebase that needs to be changed everywhere.
+- A fix requires undoing or reworking something that was already implemented.
+- An assumption in the spec or plan turned out to be wrong.
+
+Do NOT write an entry for:
+- Simple bugs caused by typos or logic errors with no systemic implication.
+- Issues already documented in `tech-stack.md` before the track started.
+
+### Entry format
+
+```markdown
+### [LEARN-NNN] Short title
+
+- **Track:** `track_id`
+- **Discovered:** YYYY-MM-DD
+- **Symptom:** Exact error message or observed bad behaviour
+- **Root cause:** Why it happened — the underlying reason, not just the surface error
+- **Fix:** What was changed to resolve it (files + approach)
+- **Prevention:** Concrete rule to apply in future specs/plans to avoid recurrence
+```
+
+Entry IDs (`LEARN-NNN`) are sequential and never reused.
+
+### How to use learnings when opening a new track
+
+1. Read `conductor/learnings.md` before writing `spec.md`.
+2. For each relevant entry, add a note in spec.md `## Technical Considerations` referencing the learning ID (e.g. "See LEARN-001 — batch size must be ≤ 2,000").
+3. Add a corresponding task in `plan.md` if the prevention requires upfront code decisions.
+
+### Relationship to tech-stack.md
+
+- `learnings.md` is the **raw incident log** — one entry per issue, with full context and narrative.
+- `tech-stack.md` is the **living reference** — distilled rules and patterns extracted from learnings, kept concise and actionable.
+- When a learning produces a generalizable rule, add it to `tech-stack.md` as well. Cross-reference both.
+
+---
+
+## metadata.json — canonical format and rules
+
+Every track folder **must** contain a `metadata.json` with exactly these fields:
+
+```json
+{
+  "track_id": "<track_id>",
+  "type": "feature",
+  "status": "new",
+  "created_at": "<ISO 8601 timestamp>",
+  "updated_at": "<ISO 8601 timestamp>",
+  "description": "<one-line description of what the track builds>"
+}
+```
+
+| Field | Type | Rules |
+|-------|------|-------|
+| `track_id` | string | Must match the folder name exactly (e.g. `csv_import_20260317`) |
+| `type` | string | Always `"feature"` for now; reserved for future values (`"bugfix"`, `"refactor"`) |
+| `status` | string | Lifecycle value: `"new"` → `"in_progress"` → `"done"` |
+| `created_at` | ISO 8601 | Set once when the track is opened; never changed |
+| `updated_at` | ISO 8601 | Update every time `status` changes |
+| `description` | string | One sentence, no period. Matches the title in `tracks.md` |
+
+**Rules:**
+- `metadata.json` contains **only** these six fields — no phases, no task lists (those live in `plan.md`).
+- Set `status: "new"` when opening the track, `"in_progress"` when the first task is marked `[~]`, `"done"` when the track is closed.
+- `updated_at` must be refreshed whenever `status` changes.
+- The file lives at `conductor/tracks/<track_id>/metadata.json` — never at the root of `conductor/`.
 
 ---
 

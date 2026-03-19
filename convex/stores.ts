@@ -1,4 +1,5 @@
-import { mutation, query } from "./_generated/server";
+import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 
 type StoreArgs = {
@@ -80,37 +81,116 @@ export const getStoreByDomain = query({
 });
 
 /**
+ * List stores with offset-based pagination.
+ * Returns items for the requested page and total count.
+ */
+export const listStores = query({
+  args: {
+    page: v.number(),
+    pageSize: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthenticated");
+
+    const all = await ctx.db.query("stores").collect();
+    const totalCount = all.length;
+    const start = (args.page - 1) * args.pageSize;
+    const items = all.slice(start, start + args.pageSize);
+    return { items, totalCount };
+  },
+});
+
+/**
+ * Internal query: fetch a store by its document ID.
+ */
+export const getStoreById = internalQuery({
+  args: { storeId: v.id("stores") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.storeId);
+  },
+});
+
+/**
+ * Internal mutation: save robots.txt content into a store's enrichmentData.
+ */
+export const saveRobotsTxt = internalMutation({
+  args: {
+    storeId: v.id("stores"),
+    content: v.union(v.string(), v.null()),
+  },
+  handler: async (ctx, args) => {
+    const store = await ctx.db.get(args.storeId);
+    if (!store) throw new Error("Store not found");
+    const existing = (store.enrichmentData as Record<string, unknown>) ?? {};
+    await ctx.db.patch(args.storeId, {
+      enrichmentData: { ...existing, robotsTxt: args.content },
+    });
+  },
+});
+
+/**
  * Import a batch of domains into the stores table.
- * Upserts each domain with status "Inactive" and platform "Unknown".
- * Returns counts of imported and skipped entries.
+ *
+ * mode:
+ *   "new-only"  — insert new domains only; skip existing records entirely.
+ *   "upsert"    — insert new domains; for existing, update url only (preserve status/platform).
+ *   "overwrite" — insert new domains; for existing, reset to Inactive/Unknown.
+ *
+ * Returns counts: imported (new inserts), updated (existing touched), skipped (blanks or new-only skips).
  */
 export const importStores = mutation({
-  args: { domains: v.array(v.string()) },
+  args: {
+    domains: v.array(v.string()),
+    mode: v.union(v.literal("new-only"), v.literal("upsert"), v.literal("overwrite")),
+  },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Unauthenticated");
-    }
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthenticated");
 
     let imported = 0;
+    let updated = 0;
     let skipped = 0;
 
     for (const raw of args.domains) {
       const domain = raw.trim();
-      if (!domain) {
-        skipped++;
-        continue;
-      }
+      if (!domain) { skipped++; continue; }
+
       const url = domain.startsWith("http") ? domain : `https://${domain}`;
-      await upsertStoreVerification(ctx as unknown as DbCtx, {
-        domain,
-        url,
-        status: "Inactive",
-        platform: "Unknown",
-      });
-      imported++;
+
+      const existing = await ctx.db
+        .query("stores")
+        .withIndex("by_domain", (q) => q.eq("domain", domain))
+        .unique();
+
+      if (existing) {
+        if (args.mode === "new-only") {
+          skipped++;
+        } else if (args.mode === "upsert") {
+          await ctx.db.patch(existing._id, { url });
+          updated++;
+        } else {
+          // overwrite — reset verification state
+          await ctx.db.patch(existing._id, {
+            url,
+            status: "Inactive",
+            platform: "Unknown",
+            lastVerifiedAt: undefined,
+            enrichmentData: undefined,
+          });
+          updated++;
+        }
+      } else {
+        await ctx.db.insert("stores", {
+          domain,
+          url,
+          status: "Inactive",
+          platform: "Unknown",
+        });
+        imported++;
+      }
     }
 
-    return { imported, skipped };
+    return { imported, updated, skipped };
   },
 });
