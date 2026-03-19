@@ -27,4 +27,7 @@ export default defineSchema({
     .index("by_domain", ["domain"])
     .index("by_status", ["status"])
     .index("by_platform", ["platform"]),
+  numbers: defineTable({
+    value: v.number(),
+  }),
 });
