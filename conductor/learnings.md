@@ -111,6 +111,54 @@ Each entry links to the track where the issue was discovered and describes root 
 
 ---
 
+### [LEARN-008] `convex dashboard` crashes predev on Windows (libuv assertion)
+
+- **Track:** `(hotfix — 2026-03-20)`
+- **Discovered:** 2026-03-20
+- **Symptom:**
+  ```
+  Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\win\async.c, line 76
+  ```
+  `npm run dev` fails immediately after Convex functions are ready; the Next.js and Convex dev servers never start.
+- **Root cause:** The `predev` script ended with `&& convex dashboard`. On Windows, `convex dashboard` opens the browser via a libuv async handle and then exits. The process tries to close the handle while it is still marked as closing, triggering a Windows-specific libuv assertion crash. This kills the `predev` step with a non-zero exit code, so the parallel `dev:frontend` / `dev:backend` processes in `npm run dev` are never reached.
+- **Fix:** Removed `&& convex dashboard` from the `predev` script in `package.json`. The dashboard URL can be opened manually.
+- **Prevention:** Do not chain `convex dashboard` (or any command that opens a browser via a child process) in npm lifecycle scripts on Windows. If the dashboard URL is needed at startup, open it in a separate terminal or add it to a dedicated npm script (`npm run dashboard`) that the developer can run independently.
+
+---
+
+### [LEARN-009] `NEXT_PUBLIC_CONVEX_SITE_URL` used instead of `NEXT_PUBLIC_CONVEX_URL` for ConvexReactClient
+
+- **Track:** `(hotfix — 2026-03-20)`
+- **Discovered:** 2026-03-20
+- **Symptom:**
+  ```
+  Invalid deployment address: "https://compassionate-caterpillar-660.convex.site" ends with
+  .convex.site, which is used for HTTP Actions. Convex deployment URLs typically end with
+  .convex.cloud.
+  ```
+  App crashes at root layout on every page load.
+- **Root cause:** `components/ConvexClientProvider.tsx` initialised `ConvexReactClient` with `process.env.NEXT_PUBLIC_CONVEX_SITE_URL` (the HTTP Actions endpoint, ending in `.convex.site`) instead of `process.env.NEXT_PUBLIC_CONVEX_URL` (the database/query endpoint, ending in `.convex.cloud`). Both variables exist in `.env.local` but serve different purposes.
+- **Fix:** Changed the env var reference in `ConvexClientProvider.tsx` from `NEXT_PUBLIC_CONVEX_SITE_URL` to `NEXT_PUBLIC_CONVEX_URL`.
+- **Prevention:** `NEXT_PUBLIC_CONVEX_URL` (`.convex.cloud`) is the only URL that should ever be passed to `ConvexReactClient`. `NEXT_PUBLIC_CONVEX_SITE_URL` (`.convex.site`) is exclusively for calling HTTP Actions from outside the Convex runtime. Never pass a `.convex.site` URL to any Convex client or provider constructor.
+
+---
+
+### [LEARN-010] `listStores` using `.collect()` hits Convex 32k document read limit (recurrence of LEARN-002)
+
+- **Track:** `(hotfix — 2026-03-20)`
+- **Discovered:** 2026-03-20
+- **Symptom:**
+  ```
+  [CONVEX Q(stores:listStores)] Uncaught Error: Too many documents read in a single function
+  execution (limit: 32000). Consider using smaller limits in your queries, paginating your
+  queries, or using indexed queries with a selective index range expressions.
+  ```
+- **Root cause:** `listStores` used `ctx.db.query("stores").collect()` to load all documents into memory, then sliced the result for offset-based pagination. This is identical in pattern to LEARN-002 (`getAllDomains`). The fix from LEARN-002 was not applied when `listStores` was written.
+- **Fix:** Replaced the `page`/`pageSize` offset API with Convex cursor-based pagination (`paginationOptsValidator` + `.paginate()`). Frontend switched from `useQuery` + manual slice to a cursor-stack pattern (array of cursors + index) enabling prev/next navigation without `totalCount`. `totalCount` display was replaced with per-page count.
+- **Prevention:** This is a direct recurrence of LEARN-002. The rule was not applied because `listStores` was written as offset pagination from the beginning. **Any query on a table that can grow must use `.paginate()` — never `.collect()`**. This is already in `tech-stack.md`; it must also be checked during spec review for every new query.
+
+---
+
 ### [LEARN-005] Relative imports break when pages move between directory depths
 
 - **Track:** `ui_navigation_stores_20260319`

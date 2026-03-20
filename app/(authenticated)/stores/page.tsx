@@ -65,8 +65,9 @@ export default function StoresPage() {
 // ── Main explorer component ───────────────────────────────────────────────
 
 function StoresExplorer() {
-  // Pagination
-  const [page, setPage] = useState(1);
+  // Cursor-based pagination: cursors[0] = null (first page), cursors[n] = cursor after page n
+  const [cursors, setCursors] = useState<(string | null)[]>([null]);
+  const [cursorIdx, setCursorIdx] = useState(0);
   const [pageSize, setPageSize] = useState(20);
 
   // Column views
@@ -92,16 +93,37 @@ function StoresExplorer() {
   const saveStoreView = useMutation(api.userPreferences.saveStoreView);
   const deleteStoreViewMutation = useMutation(api.userPreferences.deleteStoreView);
 
-  // Fetch stores
-  const result = useQuery(api.stores.listStores, { page, pageSize });
-  const stores = (result?.items ?? []) as Store[];
-  const totalCount = result?.totalCount ?? 0;
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  // Fetch stores (cursor-based pagination)
+  const result = useQuery(api.stores.listStores, {
+    paginationOpts: { numItems: pageSize, cursor: cursors[cursorIdx] ?? null },
+  });
+  const stores = (result?.page ?? []) as Store[];
+  const isDone = result?.isDone ?? true;
+  const page = cursorIdx + 1;
 
-  // Reset selection on page/size change
+  function goNext() {
+    if (!result?.continueCursor) return;
+    const next = cursors.slice(0, cursorIdx + 1);
+    next.push(result.continueCursor);
+    setCursors(next);
+    setCursorIdx(cursorIdx + 1);
+  }
+
+  function goPrev() {
+    if (cursorIdx > 0) setCursorIdx(cursorIdx - 1);
+  }
+
+  // Reset pagination and selection when page size changes
+  useEffect(() => {
+    setCursors([null]);
+    setCursorIdx(0);
+    setSelectedIds(new Set());
+  }, [pageSize]);
+
+  // Reset selection on page change
   useEffect(() => {
     setSelectedIds(new Set());
-  }, [page, pageSize]);
+  }, [cursorIdx]);
 
   // ── Column view helpers ──────────────────────────────────────────────────
 
@@ -342,7 +364,7 @@ function StoresExplorer() {
           {/* Page size */}
           <select
             value={pageSize}
-            onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+            onChange={(e) => setPageSize(Number(e.target.value))}
             className="text-sm border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300"
           >
             {PAGE_SIZES.map((s) => (
@@ -478,21 +500,19 @@ function StoresExplorer() {
 
       {/* Pagination */}
       <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-400">
-        <span>{totalCount} total store{totalCount !== 1 ? "s" : ""}</span>
+        <span>{stores.length} store{stores.length !== 1 ? "s" : ""} on this page</span>
         <div className="flex items-center gap-2">
           <button
-            disabled={page <= 1}
-            onClick={() => setPage((p) => p - 1)}
+            disabled={cursorIdx <= 0}
+            onClick={goPrev}
             className="px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             Previous
           </button>
-          <span className="px-2">
-            Page {page} of {totalPages}
-          </span>
+          <span className="px-2">Page {page}</span>
           <button
-            disabled={page >= totalPages}
-            onClick={() => setPage((p) => p + 1)}
+            disabled={isDone}
+            onClick={goNext}
             className="px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             Next

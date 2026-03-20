@@ -1,3 +1,4 @@
+import { paginationOptsValidator } from "convex/server";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
@@ -81,23 +82,18 @@ export const getStoreByDomain = query({
 });
 
 /**
- * List stores with offset-based pagination.
- * Returns items for the requested page and total count.
+ * List stores with cursor-based pagination.
+ * Returns a page of items, a continuation cursor, and whether the last page was reached.
  */
 export const listStores = query({
   args: {
-    page: v.number(),
-    pageSize: v.number(),
+    paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Unauthenticated");
 
-    const all = await ctx.db.query("stores").collect();
-    const totalCount = all.length;
-    const start = (args.page - 1) * args.pageSize;
-    const items = all.slice(start, start + args.pageSize);
-    return { items, totalCount };
+    return await ctx.db.query("stores").paginate(args.paginationOpts);
   },
 });
 

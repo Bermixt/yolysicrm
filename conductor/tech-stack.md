@@ -78,3 +78,10 @@ export const checkItems = action({
 });
 ```
 Return only aggregate numbers — never large arrays — from server to client. (See LEARN-006)
+
+**Convex client URL (`ConvexClientProvider`):**
+Always use `NEXT_PUBLIC_CONVEX_URL` (`.convex.cloud`) for `ConvexReactClient`. Never use `NEXT_PUBLIC_CONVEX_SITE_URL` (`.convex.site`) — that URL is for HTTP Actions only. (See LEARN-009)
+
+## Windows / npm Scripts
+
+**Do not chain `convex dashboard` in lifecycle scripts:** On Windows, opening the browser from a chained npm script triggers a libuv assertion crash that kills the process. Remove it from `predev`/`postdev` etc. Run it manually with a dedicated script if needed. (See LEARN-008)
